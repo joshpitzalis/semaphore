@@ -1,0 +1,34 @@
+{
+	"name": "semaphore",
+	"main": "dist/server/server.js",
+	"compatibility_date": "2025-04-01",
+	"compatibility_flags": [
+		"nodejs_compat"
+	],
+	"assets": {
+		"directory": "dist/client",
+		"binding": "ASSETS"
+	},
+	"kv_namespaces": [
+		{
+			"binding": "WORKSHOPS",
+			"id": "002440cd42904fe8b7e17c47f40493be"
+		}
+	],
+	"durable_objects": {
+		"bindings": [
+			{
+				"name": "WORKSHOP_ROOM",
+				"class_name": "WorkshopRoom"
+			}
+		]
+	},
+	"migrations": [
+		{
+			"tag": "v1",
+			"new_classes": [
+				"WorkshopRoom"
+			]
+		}
+	]
+}

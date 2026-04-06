@@ -1,0 +1,11 @@
+[   79094ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[   81099ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  139035ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  141039ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  143043ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  145047ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  147051ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  149055ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  151058ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  153062ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0
+[  155064ms] [ERROR] WebSocket connection to 'ws://localhost:8787/api/ws/opal' failed: Error in connection establishment: net::ERR_CONNECTION_REFUSED @ http://localhost:8787/assets/useWorkshopSocket-B5TDkQBt.js:0

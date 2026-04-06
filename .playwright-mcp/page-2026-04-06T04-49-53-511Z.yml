@@ -1,0 +1,15 @@
+- main [ref=e2]:
+  - generic [ref=e3]:
+    - generic [ref=e4]:
+      - generic [ref=e5]:
+        - link "← Home" [ref=e6] [cursor=pointer]:
+          - /url: /
+        - heading "opal" [level=1] [ref=e7]
+      - generic [ref=e8]: 0 participants
+    - paragraph [ref=e11]: No participants yet. Share the link to get started.
+    - generic [ref=e12]:
+      - heading "Join this workshop" [level=2] [ref=e13]
+      - generic [ref=e14]:
+        - textbox "Your name" [ref=e15]
+        - button "Join" [ref=e16]
+    - button "Close workshop" [ref=e18]
