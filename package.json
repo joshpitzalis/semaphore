@@ -13,8 +13,10 @@
     "tests": "vitest run",
     "format": "biome format",
     "lint": "biome lint",
-    "types": "biome check",
-    "deploy": "npm run build && wrangler deploy"
+    "type-check": "tsc --noEmit",
+    "check": "biome check",
+    "deploy": "npm run build && wrangler deploy",
+    "prepare": "husky"
   },
   "dependencies": {
     "@cloudflare/workers-types": "^4.20260405.1",
@@ -29,13 +31,18 @@
   },
   "devDependencies": {
     "@biomejs/biome": "2.4.5",
+    "@secretlint/core": "^11.5.0",
+    "@secretlint/secretlint-rule-preset-recommend": "^11.4.1",
     "@testing-library/dom": "^10.4.1",
     "@testing-library/react": "^16.3.0",
     "@types/node": "^22.10.2",
     "@types/react": "^19.2.0",
     "@types/react-dom": "^19.2.0",
     "@vitejs/plugin-react": "^5.1.4",
+    "husky": "^9.1.7",
     "jsdom": "^28.1.0",
+    "lint-staged": "^16.4.0",
+    "secretlint": "^11.4.1",
     "typescript": "^5.7.2",
     "vite": "^7.3.1",
     "vite-tsconfig-paths": "^5.1.4",
