@@ -1,5 +1,5 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useState } from "react";
 import { StatusCircle, StatusLabel } from "../components/StatusCircle";
 import type { Status } from "../lib/protocol";
 import { useWorkshopSocket } from "../lib/useWorkshopSocket";
@@ -14,7 +14,6 @@ function ParticipantPage() {
 	const [editing, setEditing] = useState(false);
 	const [editName, setEditName] = useState(name);
 	const [nameError, setNameError] = useState("");
-	const [joined, setJoined] = useState(false);
 
 	const onRenamed = useCallback(
 		(oldName: string, newName: string) => {
@@ -34,23 +33,13 @@ function ParticipantPage() {
 	}, []);
 
 	const { participants, workshopClosed, send } = useWorkshopSocket(slug, {
+		joinAs: name,
 		onRenamed,
 		onError,
 	});
 
 	const me = participants.find((p) => p.name === name);
 	const currentStatus: Status = me?.status ?? "working";
-
-	// Join on mount
-	useEffect(() => {
-		if (!joined) {
-			const timer = setTimeout(() => {
-				send({ type: "join", name });
-				setJoined(true);
-			}, 100);
-			return () => clearTimeout(timer);
-		}
-	}, [joined, name, send]);
 
 	if (workshopClosed) {
 		return (
