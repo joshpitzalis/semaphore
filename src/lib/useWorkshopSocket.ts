@@ -2,6 +2,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import type { ClientMessage, Participant, ServerMessage } from "./protocol";
 
 type Options = {
+  joinAs?: string;
   onRenamed?: (oldName: string, newName: string) => void;
   onError?: (message: string) => void;
 };
@@ -29,7 +30,13 @@ export function useWorkshopSocket(slug: string, options?: Options) {
       );
       wsRef.current = ws;
 
-      ws.addEventListener("open", () => setConnected(true));
+      ws.addEventListener("open", () => {
+        setConnected(true);
+        const joinName = optionsRef.current?.joinAs;
+        if (joinName) {
+          ws.send(JSON.stringify({ type: "join", name: joinName }));
+        }
+      });
 
       ws.addEventListener("message", (event) => {
         const msg: ServerMessage = JSON.parse(event.data);
