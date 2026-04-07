@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
-import { useCallback, useState } from "react";
+import { useEffect, useState } from "react";
 import { StatusCircle, StatusLabel } from "../components/StatusCircle";
 import type { Status } from "../lib/protocol";
-import { useWorkshopSocket } from "../lib/useWorkshopSocket";
+import { useWorkshopActions } from "../lib/useWorkshopActions";
 
 export const Route = createFileRoute("/$slug/$name")({
   component: ParticipantPage,
@@ -13,30 +13,27 @@ function ParticipantPage() {
   const router = useRouter();
   const [editing, setEditing] = useState(false);
   const [editName, setEditName] = useState(name);
-  const [nameError, setNameError] = useState("");
 
-  const onRenamed = useCallback(
-    (oldName: string, newName: string) => {
-      if (oldName === name) {
-        router.navigate({
-          to: "/$slug/$name",
-          params: { slug, name: newName },
-          replace: true,
-        });
-      }
-    },
-    [name, slug, router],
-  );
+  const {
+    participants,
+    workshopClosed,
+    updateStatus,
+    leave,
+    rename,
+    error,
+    clearError,
+    renamedTo,
+  } = useWorkshopActions(slug, { joinAs: name });
 
-  const onError = useCallback((message: string) => {
-    setNameError(message);
-  }, []);
-
-  const { participants, workshopClosed, send } = useWorkshopSocket(slug, {
-    joinAs: name,
-    onRenamed,
-    onError,
-  });
+  useEffect(() => {
+    if (renamedTo && renamedTo.oldName === name) {
+      router.navigate({
+        to: "/$slug/$name",
+        params: { slug, name: renamedTo.newName },
+        replace: true,
+      });
+    }
+  }, [renamedTo, name, slug, router]);
 
   const me = participants.find((p) => p.name === name);
   const currentStatus: Status = me?.status ?? "working";
@@ -53,11 +50,11 @@ function ParticipantPage() {
   }
 
   function handleStatus(status: Status) {
-    send({ type: "status", name, status });
+    updateStatus(name, status);
   }
 
   function handleLeave() {
-    send({ type: "leave", name });
+    leave(name);
     router.navigate({ to: "/$slug", params: { slug } });
   }
 
@@ -68,8 +65,8 @@ function ParticipantPage() {
       setEditName(name);
       return;
     }
-    setNameError("");
-    send({ type: "rename", oldName: name, newName });
+    clearError();
+    rename(name, newName);
     setEditing(false);
   }
 
@@ -92,7 +89,7 @@ function ParticipantPage() {
               value={editName}
               onChange={(e) => {
                 setEditName(e.target.value);
-                setNameError("");
+                clearError();
               }}
               onKeyDown={(e) => {
                 if (e.key === "Enter") handleRename();
@@ -105,9 +102,7 @@ function ParticipantPage() {
               className="text-3xl font-bold tracking-tight text-center bg-transparent border-b-2 border-accent outline-none w-48"
               ref={(el) => el?.focus()}
             />
-            {nameError && (
-              <p className="text-stuck text-sm mt-1">{nameError}</p>
-            )}
+            {error && <p className="text-stuck text-sm mt-1">{error}</p>}
           </div>
         ) : (
           <button
