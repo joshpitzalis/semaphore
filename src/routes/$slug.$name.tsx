@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useEffect, useState } from "react";
 import { StatusCircle, StatusLabel } from "../components/StatusCircle";
+import { useWorkshop } from "../features/workshop/useWorkshop";
 import type { Status } from "../lib/protocol";
-import { useWorkshopActions } from "../lib/useWorkshopActions";
 
 export const Route = createFileRoute("/$slug/$name")({
   component: ParticipantPage,
@@ -23,7 +23,7 @@ function ParticipantPage() {
     error,
     clearError,
     renamedTo,
-  } = useWorkshopActions(slug, { joinAs: name });
+  } = useWorkshop(slug, { joinAs: name });
 
   useEffect(() => {
     if (renamedTo && renamedTo.oldName === name) {
@@ -50,11 +50,11 @@ function ParticipantPage() {
   }
 
   function handleStatus(status: Status) {
-    updateStatus(name, status);
+    updateStatus(status);
   }
 
   function handleLeave() {
-    leave(name);
+    leave();
     router.navigate({ to: "/$slug", params: { slug } });
   }
 
@@ -66,7 +66,7 @@ function ParticipantPage() {
       return;
     }
     clearError();
-    rename(name, newName);
+    rename(newName);
     setEditing(false);
   }
 

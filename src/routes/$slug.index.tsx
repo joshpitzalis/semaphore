@@ -1,8 +1,8 @@
 import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { WorkshopGrid } from "../components/WorkshopGrid";
+import { useWorkshop } from "../features/workshop/useWorkshop";
 import { deleteWorkshopBySlug, getWorkshopBySlug } from "../lib/server-fns";
-import { useWorkshopActions } from "../lib/useWorkshopActions";
 
 export const Route = createFileRoute("/$slug/")({
   loader: ({ params }) => getWorkshopBySlug({ data: params.slug }),
@@ -13,8 +13,7 @@ function WorkshopDashboard() {
   const workshop = Route.useLoaderData();
   const { slug } = Route.useParams();
   const router = useRouter();
-  const { participants, workshopClosed, closeWorkshop } =
-    useWorkshopActions(slug);
+  const { participants, workshopClosed, closeWorkshop } = useWorkshop(slug);
   const [joinName, setJoinName] = useState("");
   const [joinError, setJoinError] = useState("");
   const [confirmClose, setConfirmClose] = useState(false);
