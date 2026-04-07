@@ -2,7 +2,7 @@ import { createFileRoute, Link, useRouter } from "@tanstack/react-router";
 import { useState } from "react";
 import { WorkshopGrid } from "../components/WorkshopGrid";
 import { deleteWorkshopBySlug, getWorkshopBySlug } from "../lib/server-fns";
-import { useWorkshopSocket } from "../lib/useWorkshopSocket";
+import { useWorkshopActions } from "../lib/useWorkshopActions";
 
 export const Route = createFileRoute("/$slug/")({
   loader: ({ params }) => getWorkshopBySlug({ data: params.slug }),
@@ -13,7 +13,8 @@ function WorkshopDashboard() {
   const workshop = Route.useLoaderData();
   const { slug } = Route.useParams();
   const router = useRouter();
-  const { participants, workshopClosed, send } = useWorkshopSocket(slug);
+  const { participants, workshopClosed, closeWorkshop } =
+    useWorkshopActions(slug);
   const [joinName, setJoinName] = useState("");
   const [joinError, setJoinError] = useState("");
   const [confirmClose, setConfirmClose] = useState(false);
@@ -47,12 +48,6 @@ function WorkshopDashboard() {
       return;
     }
 
-    // Check if name is taken
-    if (participants.some((p) => p.name === name)) {
-      setJoinError("Name is already taken");
-      return;
-    }
-
     router.navigate({
       to: "/$slug/$name",
       params: { slug, name },
@@ -60,7 +55,7 @@ function WorkshopDashboard() {
   }
 
   async function handleClose() {
-    send({ type: "close_workshop" });
+    closeWorkshop();
     await deleteWorkshopBySlug({ data: slug });
     router.navigate({ to: "/" });
   }
