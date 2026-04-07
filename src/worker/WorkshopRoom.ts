@@ -1,214 +1,122 @@
-import type {
-	ClientMessage,
-	Participant,
-	ServerMessage,
-	Status,
-} from "../lib/protocol";
+import type { ClientMessage, ServerMessage } from "../lib/protocol";
+import { type ActionResult, WorkshopState } from "./workshopState";
 
 export class WorkshopRoom {
-	private participants: Map<string, { status: Status; connected: boolean }> =
-		new Map();
-	private connections: Map<WebSocket, string> = new Map(); // ws -> name
+  private workshop = new WorkshopState();
+  private wsToId = new Map<WebSocket, string>();
+  private nextId = 0;
 
-	constructor(
-		private state: DurableObjectState,
-		_env: Env,
-	) {}
+  constructor(
+    private state: DurableObjectState,
+    _env: Env,
+  ) {}
 
-	async fetch(request: Request): Promise<Response> {
-		const url = new URL(request.url);
+  async fetch(request: Request): Promise<Response> {
+    const url = new URL(request.url);
 
-		if (url.pathname === "/ws") {
-			if (request.headers.get("Upgrade") !== "websocket") {
-				return new Response("Expected WebSocket", { status: 426 });
-			}
+    if (url.pathname === "/ws") {
+      if (request.headers.get("Upgrade") !== "websocket") {
+        return new Response("Expected WebSocket", { status: 426 });
+      }
 
-			const pair = new WebSocketPair();
-			const [client, server] = Object.values(pair);
+      const pair = new WebSocketPair();
+      const [client, server] = Object.values(pair);
 
-			this.state.acceptWebSocket(server);
+      this.state.acceptWebSocket(server);
 
-			// Send current state so late joiners / reconnecting dashboards
-			// don't start with an empty participant list.
-			server.send(
-				JSON.stringify({
-					type: "state",
-					participants: this.getParticipantList(),
-				} satisfies ServerMessage),
-			);
+      server.send(
+        JSON.stringify({
+          type: "state",
+          participants: this.workshop.getParticipants(),
+        } satisfies ServerMessage),
+      );
 
-			return new Response(null, { status: 101, webSocket: client });
-		}
+      return new Response(null, { status: 101, webSocket: client });
+    }
 
-		if (url.pathname === "/state") {
-			return Response.json({ participants: this.getParticipantList() });
-		}
+    if (url.pathname === "/state") {
+      return Response.json({ participants: this.workshop.getParticipants() });
+    }
 
-		return new Response("Not found", { status: 404 });
-	}
+    return new Response("Not found", { status: 404 });
+  }
 
-	webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer) {
-		if (typeof raw !== "string") return;
+  webSocketMessage(ws: WebSocket, raw: string | ArrayBuffer) {
+    if (typeof raw !== "string") return;
 
-		let msg: ClientMessage;
-		try {
-			msg = JSON.parse(raw);
-		} catch {
-			return;
-		}
+    let msg: ClientMessage;
+    try {
+      msg = JSON.parse(raw);
+    } catch {
+      return;
+    }
 
-		switch (msg.type) {
-			case "join":
-				this.handleJoin(ws, msg.name);
-				break;
-			case "status":
-				this.handleStatus(msg.name, msg.status);
-				break;
-			case "leave":
-				this.handleLeave(msg.name);
-				break;
-			case "rename":
-				this.handleRename(ws, msg.oldName, msg.newName);
-				break;
-			case "close_workshop":
-				this.handleCloseWorkshop();
-				break;
-		}
-	}
+    const connId = this.getConnectionId(ws);
+    let result: ActionResult;
 
-	webSocketClose(ws: WebSocket) {
-		const name = this.connections.get(ws);
-		if (name) {
-			const participant = this.participants.get(name);
-			if (participant) {
-				participant.connected = false;
-			}
-			this.connections.delete(ws);
-			this.broadcast({
-				type: "state",
-				participants: this.getParticipantList(),
-			});
-		}
-	}
+    switch (msg.type) {
+      case "join":
+        result = this.workshop.join(connId, msg.name);
+        break;
+      case "status":
+        result = this.workshop.status(msg.name, msg.status);
+        break;
+      case "leave":
+        result = this.workshop.leave(msg.name);
+        break;
+      case "rename":
+        result = this.workshop.rename(connId, msg.oldName, msg.newName);
+        break;
+      case "close_workshop":
+        result = this.workshop.close();
+        break;
+    }
 
-	webSocketError(ws: WebSocket) {
-		this.webSocketClose(ws);
-	}
+    this.applyResult(ws, result);
+  }
 
-	private handleJoin(ws: WebSocket, name: string) {
-		if (!name.trim()) {
-			this.send(ws, { type: "error", message: "Name cannot be empty" });
-			return;
-		}
+  webSocketClose(ws: WebSocket) {
+    const connId = this.wsToId.get(ws);
+    if (connId) {
+      const result = this.workshop.disconnect(connId);
+      this.wsToId.delete(ws);
+      this.applyResult(ws, result);
+    }
+  }
 
-		const existing = this.participants.get(name);
+  webSocketError(ws: WebSocket) {
+    this.webSocketClose(ws);
+  }
 
-		if (existing) {
-			// Reconnection — take over
-			if (!existing.connected) {
-				existing.connected = true;
-				this.connections.set(ws, name);
-				this.broadcast({
-					type: "state",
-					participants: this.getParticipantList(),
-				});
-				return;
-			}
-			// Name taken by active connection
-			this.send(ws, { type: "error", message: "Name is already taken" });
-			return;
-		}
+  private applyResult(ws: WebSocket, result: ActionResult) {
+    if (result.unicast) {
+      ws.send(JSON.stringify(result.unicast));
+    }
+    if (result.broadcast) {
+      for (const msg of result.broadcast) {
+        this.broadcast(msg);
+      }
+    }
+    if (result.closed) {
+      for (const socket of this.state.getWebSockets()) {
+        socket.close(1000, "Workshop closed");
+      }
+    }
+  }
 
-		this.participants.set(name, { status: "working", connected: true });
-		this.connections.set(ws, name);
-		this.broadcast({ type: "state", participants: this.getParticipantList() });
-	}
+  private getConnectionId(ws: WebSocket): string {
+    let id = this.wsToId.get(ws);
+    if (!id) {
+      id = `conn-${this.nextId++}`;
+      this.wsToId.set(ws, id);
+    }
+    return id;
+  }
 
-	private handleStatus(name: string, status: Status) {
-		const participant = this.participants.get(name);
-		if (!participant) return;
-		participant.status = status;
-		this.broadcast({ type: "state", participants: this.getParticipantList() });
-	}
-
-	private handleRename(ws: WebSocket, oldName: string, newName: string) {
-		if (!newName.trim()) {
-			this.send(ws, { type: "error", message: "Name cannot be empty" });
-			return;
-		}
-
-		const participant = this.participants.get(oldName);
-		if (!participant) return;
-
-		if (this.participants.has(newName)) {
-			this.send(ws, { type: "error", message: "Name is already taken" });
-			return;
-		}
-
-		// Move participant data to new name
-		this.participants.delete(oldName);
-		this.participants.set(newName, participant);
-
-		// Update connection mapping
-		for (const [socket, n] of this.connections) {
-			if (n === oldName) {
-				this.connections.set(socket, newName);
-				break;
-			}
-		}
-
-		this.broadcast({
-			type: "renamed",
-			oldName,
-			newName,
-		});
-		this.broadcast({ type: "state", participants: this.getParticipantList() });
-	}
-
-	private handleLeave(name: string) {
-		this.participants.delete(name);
-
-		// Remove the connection mapping
-		for (const [ws, n] of this.connections) {
-			if (n === name) {
-				this.connections.delete(ws);
-				break;
-			}
-		}
-
-		this.broadcast({ type: "state", participants: this.getParticipantList() });
-	}
-
-	private handleCloseWorkshop() {
-		this.broadcast({ type: "workshop_closed" });
-
-		// Close all WebSocket connections
-		for (const ws of this.state.getWebSockets()) {
-			ws.close(1000, "Workshop closed");
-		}
-
-		this.participants.clear();
-		this.connections.clear();
-	}
-
-	private getParticipantList(): Array<Participant> {
-		return Array.from(this.participants.entries()).map(
-			([name, { status, connected }]) => ({
-				name,
-				status,
-				connected,
-			}),
-		);
-	}
-
-	private broadcast(msg: ServerMessage) {
-		const data = JSON.stringify(msg);
-		for (const ws of this.state.getWebSockets()) {
-			ws.send(data);
-		}
-	}
-
-	private send(ws: WebSocket, msg: ServerMessage) {
-		ws.send(JSON.stringify(msg));
-	}
+  private broadcast(msg: ServerMessage) {
+    const data = JSON.stringify(msg);
+    for (const ws of this.state.getWebSockets()) {
+      ws.send(data);
+    }
+  }
 }
